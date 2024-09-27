@@ -126,7 +126,7 @@ namespace SimpleFileLogger
 
         private static string GenerateFileName()
         {
-            return $"log_{DateTime.Now:yyyyMMdd}.txt";
+            return $"SFLog_{DateTime.Now:yyyyMMdd}.txt";
         }
     }
 
