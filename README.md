@@ -8,9 +8,11 @@ class Program
         // Initialize the logger
         var config = new LoggerConfig
         {
-            LogFilePath = @"C:\Logs",
+            LogDirectory = @"C:\Logs",
             EnableLogging = true,
-            MinimumLogLevel = LogLevel.Debug
+            MinimumLogLevel = LogLevel.Debug,
+            MaxLogFiles = 30,
+            MaxLogFileSizeMB = 1
         };
         FileLogger.Initialize(config);
 
@@ -40,7 +42,7 @@ catch (Exception ex)
     {
         Console.WriteLine($"Failed to load configuration: {ex.Message}");
         // Set default values
-        logFilePath = Path.Combine(@".\Logs", GenerateFileName());
+        LogDirectory = Path.Combine(@".\Logs", GenerateFileName());
         enableLogging = true;
         minimumLogLevel = LogLevel.Info;
     }

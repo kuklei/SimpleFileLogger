@@ -1,35 +1,45 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
 
 namespace SimpleFileLogger
 {
-    public static class FileLogger
+    public static class SFL
     {
-        private static string logFilePath;
+        private static string logDirectory;
         private static bool enableLogging;
         private static LogLevel minimumLogLevel;
+        private static int maxLogFiles;
+        private static long maxFileSizeBytes;
         private static bool isInitialized = false;
+        private static string currentLogFile;
+        private static object fileLock = new object();
 
-        public static void Initialize(LoggerConfig config)
+        public static void Initialize(SFLConfig config)
         {
             if (isInitialized)
             {
                 throw new InvalidOperationException("FileLogger is already initialized.");
             }
 
-            logFilePath = Path.Combine(config.LogFilePath, GenerateFileName());
+            logDirectory = config.LogDirectory;
             enableLogging = config.EnableLogging;
             minimumLogLevel = config.MinimumLogLevel;
+            maxLogFiles = config.MaxLogFiles;
+            maxFileSizeBytes = config.MaxFileSizeMB * 1024 * 1024;
 
             if (enableLogging)
             {
-                string directoryPath = Path.GetDirectoryName(logFilePath);
-                if (!Directory.Exists(directoryPath))
+
+                if (!Directory.Exists(logDirectory))
                 {
-                    Directory.CreateDirectory(directoryPath);
+                    Directory.CreateDirectory(logDirectory);
                 }
             }
+            currentLogFile = GetLogFilePath();
             isInitialized = true;
+
+            CleanupOldLogs();
         }
 
         private static void EnsureInitialized()
@@ -50,11 +60,57 @@ namespace SimpleFileLogger
             try
             {
                 string logMessage = $"- {DateTime.Now:HH:mm:ss} [{level}] - {message}";
-                File.AppendAllText(logFilePath, logMessage + Environment.NewLine);
+                lock (fileLock)
+                {
+                    string todayLogFile = GetLogFilePath();
+                    if (todayLogFile != currentLogFile)
+                    {
+                        currentLogFile = todayLogFile;
+                        CleanupOldLogs();
+                    }
+
+                    if (File.Exists(currentLogFile) && new FileInfo(currentLogFile).Length + logMessage.Length > maxFileSizeBytes)
+                    {
+                        currentLogFile = GetLogFilePath(true);
+                    }
+
+                    File.AppendAllText(currentLogFile, logMessage);
+                }
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Failed to log message: {ex.Message}");
+            }
+        }
+
+        private static string GetLogFilePath(bool split = false)
+        {
+            string fileName = $"log_{DateTime.Now:yyyyMMdd}";
+            if (split)
+            {
+                fileName += $"_{DateTime.Now:HHmmss}";
+            }
+            fileName += ".txt";
+            return Path.Combine(logDirectory, fileName);
+        }
+
+        private static void CleanupOldLogs()
+        {
+            var logFiles = Directory.GetFiles(logDirectory, "log_*.txt")
+                                    .OrderByDescending(f => f)
+                                    .Skip(maxLogFiles)
+                                    .ToList();
+
+            foreach (var file in logFiles)
+            {
+                try
+                {
+                    File.Delete(file);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Failed to delete old log file {file}: {ex.Message}");
+                }
             }
         }
 
@@ -83,10 +139,12 @@ namespace SimpleFileLogger
         Critical
     }
 
-    public class LoggerConfig
+    public class SFLConfig
     {
-        public string LogFilePath { get; set; }
-        public bool EnableLogging { get; set; }
-        public LogLevel MinimumLogLevel { get; set; }
+        public string LogDirectory { get; set; } = "logs"; // Default to "logs
+        public bool EnableLogging { get; set; } = true;
+        public LogLevel MinimumLogLevel { get; set; } = LogLevel.Info;
+        public int MaxLogFiles { get; set; } = 30; // Default to keep last 30 log files
+        public long MaxFileSizeMB { get; set; } = 5; // 5 MB default
     }
 }
