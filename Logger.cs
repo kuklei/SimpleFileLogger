@@ -74,7 +74,7 @@ namespace SimpleFileLogger
                         currentLogFile = GetLogFilePath(true);
                     }
 
-                    File.AppendAllText(currentLogFile, logMessage);
+                    File.AppendAllText(currentLogFile, logMessage + Environment.NewLine);
                 }
             }
             catch (Exception ex)
