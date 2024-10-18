@@ -1,11 +1,16 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace SimpleFileLogger
 {
     public static class SFL
     {
+        //ensure only one instance of the logger is initialized
+        private static readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
+
         private static string logDirectory;
         private static bool enableLogging;
         private static LogLevel minimumLogLevel;
@@ -15,31 +20,49 @@ namespace SimpleFileLogger
         private static string currentLogFile;
         private static object fileLock = new object();
 
-        public static void Initialize(SFLConfig config)
+        public static async Task InitializeAsync(SFLConfig config)
         {
             if (isInitialized)
             {
-                throw new InvalidOperationException("FileLogger is already initialized.");
+                return;
             }
 
-            logDirectory = config.LogDirectory;
-            enableLogging = config.EnableLogging;
-            minimumLogLevel = config.MinimumLogLevel;
-            maxLogFiles = config.MaxLogFiles;
-            maxFileSizeBytes = config.MaxFileSizeMB * 1024 * 1024;
-
-            if (enableLogging)
+            await _semaphore.WaitAsync();
+            try
             {
-
-                if (!Directory.Exists(logDirectory))
+                if (isInitialized)
                 {
-                    Directory.CreateDirectory(logDirectory);
+                    return;
                 }
-            }
-            currentLogFile = GetLogFilePath();
-            isInitialized = true;
 
-            CleanupOldLogs();
+                logDirectory = config.LogDirectory;
+                enableLogging = config.EnableLogging;
+                minimumLogLevel = config.MinimumLogLevel;
+                maxLogFiles = config.MaxLogFiles;
+                maxFileSizeBytes = config.MaxFileSizeMB * 1024 * 1024;
+
+                if (enableLogging)
+                {
+                    if (!Directory.Exists(logDirectory))
+                    {
+                        Directory.CreateDirectory(logDirectory);
+                    }
+                }
+                currentLogFile = GetLogFilePath();
+                isInitialized = true;
+
+                CleanupOldLogs();
+            }
+            finally
+            {
+                _semaphore.Release();
+            }
+
+        }
+
+        public static void Initialize(SFLConfig config)
+        {
+            InitializeAsync(config).GetAwaiter().GetResult();
         }
 
         private static void EnsureInitialized()
