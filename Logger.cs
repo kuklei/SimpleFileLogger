@@ -96,6 +96,10 @@ namespace SimpleFileLogger
 
         private static void CleanupOldLogs()
         {
+            if (!Directory.Exists(logDirectory))
+            {
+                return;
+            }
             var logFiles = Directory.GetFiles(logDirectory, "log_*.txt")
                                     .OrderByDescending(f => f)
                                     .Skip(maxLogFiles)
