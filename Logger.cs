@@ -22,10 +22,6 @@ namespace SimpleFileLogger
 
         public static async Task InitializeAsync(SFLConfig config)
         {
-            if (isInitialized)
-            {
-                return;
-            }
 
             await _semaphore.WaitAsync();
             try
