@@ -20,8 +20,8 @@
 		<PackageOutputPath>Z:\Projects\Repos\NuGetPackages\</PackageOutputPath>
 		<AssemblyName>SimpleFileLogger</AssemblyName>
 		<AssemblyVersion>1.0.0</AssemblyVersion>
-		<FileVersion>1.1.0</FileVersion>
-		<Version>1.1.0</Version>
+		<FileVersion>1.1.1</FileVersion>
+		<Version>1.1.1</Version>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<RepositoryUrl>https://github.com/kuklei/SimpleFileLogger.git</RepositoryUrl>
 		<ComVisible>false</ComVisible>

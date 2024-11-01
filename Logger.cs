@@ -39,10 +39,19 @@ namespace SimpleFileLogger
 
                 if (enableLogging)
                 {
-                    if (!Directory.Exists(logDirectory))
+                    try
                     {
-                        Directory.CreateDirectory(logDirectory);
+                        if (!Directory.Exists(logDirectory))
+                        {
+                            Directory.CreateDirectory(logDirectory);
+                        }
                     }
+                    catch (Exception)
+                    {
+                        enableLogging = false;
+                        Console.WriteLine("Failed to create log directory for SFL. Logging will be disabled.");
+                    }
+
                 }
                 currentLogFile = GetLogFilePath();
                 isInitialized = true;
@@ -164,8 +173,8 @@ namespace SimpleFileLogger
 
     public class SFLConfig
     {
-        public string LogDirectory { get; set; } = "logs"; // Default to "logs
-        public bool EnableLogging { get; set; } = true;
+        public string LogDirectory { get; set; } = @".\SFLogs"; // Default to "logs
+        public bool EnableLogging { get; set; } // Default disabled
         public LogLevel MinimumLogLevel { get; set; } = LogLevel.Info;
         public int MaxLogFiles { get; set; } = 30; // Default to keep last 30 log files
         public long MaxFileSizeMB { get; set; } = 5; // 5 MB default
